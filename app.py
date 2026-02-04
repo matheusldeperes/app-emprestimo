@@ -36,8 +36,8 @@ EMAIL_OFICINA = "oficina@sattealam.com"
 EMAIL_GERENTE = "rodo@sattealam.com"
 
 # Configurações de email (usando conta de serviço do Gmail)
-SENDER_EMAIL = st.secrets.get("SENDER_EMAIL", "marketing@sattealam.com")
-SENDER_PASSWORD = st.secrets.get("SENDER_PASSWORD", "fyfqjhkcqvkraedd")
+SENDER_EMAIL = st.secrets.get("SENDER_EMAIL", "matheusldeperes@gmail.com")
+SENDER_PASSWORD = st.secrets.get("SENDER_PASSWORD", "")
 
 # ID da pasta do Google Drive onde os PDFs serão salvos
 DRIVE_FOLDER_ID = st.secrets.get("DRIVE_FOLDER_ID", "")
