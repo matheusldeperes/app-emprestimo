@@ -95,7 +95,7 @@ def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios
         st.error(f"Erro ao enviar email: {e}")
         return False
 
-def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, fotos):
+def gerar_pdf_bytes(logo_path, placa, modelo, quilometragem, observacoes, consultor, motivo, data_hora, fotos):
     """Gera PDF com logo no topo, dados do veículo e fotos do checklist"""
     # Cores da identidade visual Satte Alam
     SATTE_VERDE = (9, 165, 154)
@@ -185,8 +185,30 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
     else:
         pdf.set_font("helvetica", "", 10)
     pdf.cell(0, 6, f"Modelo: {modelo}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 6, f"Quilometragem: {quilometragem} km", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 6, f"Consultor Responsável: {consultor}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 6, f"Data/Hora do Checklist: {data_hora}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    
+    # Observações sobre o veículo (se fornecido)
+    if observacoes and observacoes.strip():
+        pdf.ln(3)
+        if fonte_texto == "Montserrat":
+            pdf.set_font("Montserrat", "B", 10)
+        else:
+            pdf.set_font("helvetica", "B", 10)
+        pdf.set_text_color(*SATTE_VERDE)
+        pdf.cell(0, 7, "Observações sobre o Veículo:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        
+        if fonte_texto == "Montserrat":
+            pdf.set_font("Montserrat", "", 9)
+        else:
+            pdf.set_font("helvetica", "", 9)
+        pdf.set_text_color(*SATTE_PRETO)
+        try:
+            observacoes_tratadas = observacoes.encode('latin-1', 'ignore').decode('latin-1')
+        except:
+            observacoes_tratadas = observacoes
+        pdf.multi_cell(0, 5, observacoes_tratadas)
     
     # Motivo do empréstimo (se fornecido)
     if motivo and motivo.strip():
@@ -255,6 +277,58 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
         
         pdf.image(img_byte_arr, x=x_centralizado, w=largura_foto)
         pdf.ln(3)
+    
+    # Campo de assinatura
+    pdf.ln(15)
+    
+    # Verificar se precisa de nova página para assinatura
+    if pdf.get_y() > altura_pagina - 70:
+        pdf.add_page()
+    
+    # Título da seção de assinatura
+    if fonte_texto == "Montserrat":
+        pdf.set_font("Montserrat", "B", 11)
+    else:
+        pdf.set_font("helvetica", "B", 11)
+    pdf.set_text_color(*SATTE_LARANJA)
+    pdf.cell(0, 7, "Assinatura do Cliente:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    
+    # Linha decorativa
+    pdf.set_draw_color(*SATTE_LARANJA)
+    pdf.set_line_width(0.5)
+    pdf.line(margem, pdf.get_y(), largura_pagina - margem, pdf.get_y())
+    pdf.ln(8)
+    
+    # Texto explicativo
+    if fonte_texto == "Montserrat":
+        pdf.set_font("Montserrat", "", 9)
+    else:
+        pdf.set_font("helvetica", "", 9)
+    pdf.set_text_color(*SATTE_PRETO)
+    pdf.cell(0, 5, "Declaro que recebi o veículo nas condições descritas acima e me comprometo a devolvê-lo", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 5, "nas mesmas condições em que foi emprestado.", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    
+    pdf.ln(15)
+    
+    # Linha para assinatura
+    linha_assinatura_y = pdf.get_y()
+    pdf.set_draw_color(*SATTE_PRETO)
+    pdf.set_line_width(0.3)
+    
+    # Linha da assinatura (centralizada, 60% da largura)
+    largura_linha = largura_disponivel * 0.6
+    x_linha = margem + (largura_disponivel - largura_linha) / 2
+    pdf.line(x_linha, linha_assinatura_y, x_linha + largura_linha, linha_assinatura_y)
+    
+    pdf.ln(2)
+    
+    # Texto abaixo da linha
+    if fonte_texto == "Montserrat":
+        pdf.set_font("Montserrat", "", 8)
+    else:
+        pdf.set_font("helvetica", "", 8)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 5, "Assinatura e Data", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
     # Rodapé na última página (Montserrat Light)
     pdf.set_y(-30)
@@ -433,9 +507,16 @@ c1, c2 = st.columns(2)
 placa_veiculo = c1.text_input("Placa do Veículo", placeholder="Ex: ABC-1234", max_chars=8)
 modelo_veiculo = c2.text_input("Modelo", placeholder="Ex: Corolla XEI")
 
-# Captura automática de data e hora
+c3, c4 = st.columns(2)
+quilometragem_veiculo = c3.text_input("Quilometragem (km)", placeholder="Ex: 45000")
 data_hora_checklist = datetime.now().strftime('%d/%m/%Y %H:%M')
-st.info(f"🕒 Data/Hora do Checklist: **{data_hora_checklist}**")
+c4.info(f"🕒 Data/Hora: **{data_hora_checklist}**")
+
+observacoes_veiculo = st.text_area(
+    "Observações sobre o Veículo",
+    placeholder="Ex: Arranhão na porta traseira direita, pneu dianteiro desgastado...",
+    height=100
+)
 
 # Seção 2: Dados do Responsável
 st.divider()
@@ -497,10 +578,10 @@ st.divider()
 
 # Botão de gerar checklist
 if not st.session_state.finalizado:
-    botao_liberado = bool(placa_veiculo and modelo_veiculo and st.session_state.lista_fotos)
+    botao_liberado = bool(placa_veiculo and modelo_veiculo and quilometragem_veiculo and st.session_state.lista_fotos)
     
     if not botao_liberado:
-        st.warning("⚠️ Preencha a placa, modelo e capture ao menos uma foto para continuar")
+        st.warning("⚠️ Preencha a placa, modelo, quilometragem e capture ao menos uma foto para continuar")
     
     if st.button("✅ Finalizar Checklist e Enviar", use_container_width=True, disabled=not botao_liberado, type="primary"):
         with st.spinner("Gerando PDF e enviando emails..."):
@@ -509,6 +590,8 @@ if not st.session_state.finalizado:
                 "assets/logo.png",
                 placa_veiculo.upper(),
                 modelo_veiculo,
+                quilometragem_veiculo,
+                observacoes_veiculo,
                 consultor_responsavel,
                 motivo_emprestimo,
                 data_hora_checklist,
