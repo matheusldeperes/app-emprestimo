@@ -33,7 +33,7 @@ CONSULTORES = [
 
 # Emails para envio de cópia
 EMAIL_OFICINA = "oficina@sattealam.com"
-EMAIL_GERENTE = "rodolfo@sattealam.com"
+EMAIL_GERENTE = "rodo@sattealam.com"
 
 # Configurações de email (usando conta de serviço do Gmail)
 SENDER_EMAIL = st.secrets.get("SENDER_EMAIL", "marketing@sattealam.com")
