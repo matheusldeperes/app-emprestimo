@@ -63,54 +63,67 @@ if 'drive_link' not in st.session_state:
 def upload_para_drive(arquivo_pdf_bytes, nome_arquivo):
     """Faz upload do PDF para o Google Drive e retorna o link"""
     try:
-        # Configurar credenciais do Google
-        if GOOGLE_CREDENTIALS:
-            # Se você está usando Service Account JSON
-            if isinstance(GOOGLE_CREDENTIALS, dict):
-                creds = service_account.Credentials.from_service_account_info(
-                    GOOGLE_CREDENTIALS,
-                    scopes=['https://www.googleapis.com/auth/drive.file']
-                )
-            else:
-                # Se você está usando outro formato de credenciais
-                creds = Credentials.from_authorized_user_info(
-                    GOOGLE_CREDENTIALS,
-                    scopes=['https://www.googleapis.com/auth/drive.file']
-                )
-            
-            # Criar cliente do Drive API
-            service = build('drive', 'v3', credentials=creds)
-            
-            # Preparar o arquivo para upload
-            file_metadata = {
-                'name': nome_arquivo,
-                'parents': [DRIVE_FOLDER_ID] if DRIVE_FOLDER_ID else []
-            }
-            
-            media = MediaIoBaseUpload(
-                io.BytesIO(arquivo_pdf_bytes),
-                mimetype='application/pdf',
-                resumable=True
-            )
-            
-            # Fazer upload
-            file = service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id, webViewLink'
-            ).execute()
-            
-            # Tornar o arquivo acessível via link
-            service.permissions().create(
-                fileId=file.get('id'),
-                body={'type': 'anyone', 'role': 'reader'}
-            ).execute()
-            
-            return file.get('webViewLink')
-        else:
+        # Verificar se as credenciais existem
+        if not GOOGLE_CREDENTIALS:
+            st.warning("⚠️ Credenciais do Google Drive não configuradas. Upload para Drive desabilitado.")
             return None
+        
+        if not DRIVE_FOLDER_ID:
+            st.warning("⚠️ ID da pasta do Drive não configurado. Upload para Drive desabilitado.")
+            return None
+        
+        st.info("☁️ Fazendo upload para o Google Drive...")
+        
+        # Configurar credenciais do Google
+        if isinstance(GOOGLE_CREDENTIALS, dict):
+            creds = service_account.Credentials.from_service_account_info(
+                GOOGLE_CREDENTIALS,
+                scopes=['https://www.googleapis.com/auth/drive.file']
+            )
+        else:
+            creds = Credentials.from_authorized_user_info(
+                GOOGLE_CREDENTIALS,
+                scopes=['https://www.googleapis.com/auth/drive.file']
+            )
+        
+        # Criar cliente do Drive API
+        service = build('drive', 'v3', credentials=creds)
+        
+        # Preparar o arquivo para upload
+        file_metadata = {
+            'name': nome_arquivo,
+            'parents': [DRIVE_FOLDER_ID]
+        }
+        
+        media = MediaIoBaseUpload(
+            io.BytesIO(arquivo_pdf_bytes),
+            mimetype='application/pdf',
+            resumable=True
+        )
+        
+        # Fazer upload
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, webViewLink'
+        ).execute()
+        
+        file_id = file.get('id')
+        
+        # Tornar o arquivo acessível via link
+        service.permissions().create(
+            fileId=file_id,
+            body={'type': 'anyone', 'role': 'reader'}
+        ).execute()
+        
+        link = file.get('webViewLink')
+        st.success(f"✅ Upload concluído! ID do arquivo: {file_id}")
+        return link
+        
     except Exception as e:
-        print(f"Erro ao fazer upload para o Drive: {e}")
+        erro_msg = f"Erro ao fazer upload para o Drive: {str(e)}"
+        print(erro_msg)
+        st.error(erro_msg)
         return None
 
 def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios, drive_link=None):
