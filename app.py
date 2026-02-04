@@ -95,7 +95,7 @@ def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios
         st.error(f"Erro ao enviar email: {e}")
         return False
 
-def gerar_pdf_bytes(logo_path, placa, modelo, quilometragem, observacoes, consultor, motivo, data_hora, fotos):
+def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, observacoes, consultor, motivo, data_hora, fotos):
     """Gera PDF com logo no topo, dados do veículo e fotos do checklist"""
     # Cores da identidade visual Satte Alam
     SATTE_VERDE = (9, 165, 154)
@@ -170,6 +170,16 @@ def gerar_pdf_bytes(logo_path, placa, modelo, quilometragem, observacoes, consul
     pdf.set_line_width(0.5)
     pdf.line(margem, pdf.get_y() + 2, largura_pagina - margem, pdf.get_y() + 2)
     pdf.ln(8)
+    
+    # Nome do Cliente (Montserrat Semi Bold - destaque)
+    if fonte_texto == "Montserrat":
+        pdf.set_font("Montserrat", "B", 11)
+    else:
+        pdf.set_font("helvetica", "B", 11)
+    pdf.set_text_color(*SATTE_PRETO)
+    pdf.cell(0, 7, f"Nome do Cliente: {nome_cliente}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    
+    pdf.ln(2)
     
     # Dados do veículo (Montserrat Semi Bold)
     if fonte_texto == "Montserrat":
@@ -503,6 +513,8 @@ st.title("Checklist de Empréstimo de Veículo")
 # Seção 1: Dados do Veículo
 st.subheader("📋 Dados do Veículo")
 
+nome_cliente = st.text_input("👤 Nome do Cliente", placeholder="Ex: João da Silva")
+
 c1, c2 = st.columns(2)
 placa_veiculo = c1.text_input("Placa do Veículo", placeholder="Ex: ABC-1234", max_chars=8)
 modelo_veiculo = c2.text_input("Modelo", placeholder="Ex: Corolla XEI")
@@ -578,16 +590,17 @@ st.divider()
 
 # Botão de gerar checklist
 if not st.session_state.finalizado:
-    botao_liberado = bool(placa_veiculo and modelo_veiculo and quilometragem_veiculo and st.session_state.lista_fotos)
+    botao_liberado = bool(nome_cliente and placa_veiculo and modelo_veiculo and quilometragem_veiculo and st.session_state.lista_fotos)
     
     if not botao_liberado:
-        st.warning("⚠️ Preencha a placa, modelo, quilometragem e capture ao menos uma foto para continuar")
+        st.warning("⚠️ Preencha o nome do cliente, placa, modelo, quilometragem e capture ao menos uma foto para continuar")
     
     if st.button("✅ Finalizar Checklist e Enviar", use_container_width=True, disabled=not botao_liberado, type="primary"):
         with st.spinner("Gerando PDF e enviando emails..."):
             # Gerar PDF
             pdf_bytes = gerar_pdf_bytes(
                 "assets/logo.png",
+                nome_cliente,
                 placa_veiculo.upper(),
                 modelo_veiculo,
                 quilometragem_veiculo,
