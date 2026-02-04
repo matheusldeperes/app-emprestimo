@@ -1,0 +1,33 @@
+# Ignorar arquivos de configuração com senhas
+.streamlit/secrets.toml
+
+# Ambientes virtuais
+venv/
+env/
+ENV/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Arquivos temporários
+*.pdf
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credenciais do Google
+*.json
+!requirements.txt
