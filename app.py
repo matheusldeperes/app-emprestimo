@@ -108,7 +108,12 @@ def upload_para_drive(arquivo_pdf_bytes, nome_arquivo):
             
             return file.get('webViewLink')
         else:
-            return Noneplaca, modelo, consultor_nome, destinatarios, drive_link=None):
+            return None
+    except Exception as e:
+        print(f"Erro ao fazer upload para o Drive: {e}")
+        return None
+
+def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios, drive_link=None):
     """Envia o PDF para os emails especificados"""
     try:
         msg = MIMEMultipart()
@@ -157,12 +162,7 @@ def upload_para_drive(arquivo_pdf_bytes, nome_arquivo):
         return True
     except Exception as e:
         print(f"Erro ao enviar email: {e}")
-        st.errordor.send_message(msg)
-        servidor.quit()
-        
-        return True
-    except Exception as e:
-        print(f"Erro ao enviar email: {e}")
+        st.error(f"Erro ao enviar email: {e}")
         return False
 
 def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, fotos):
