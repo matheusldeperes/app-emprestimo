@@ -74,17 +74,14 @@ def upload_para_drive(arquivo_pdf_bytes, nome_arquivo):
         
         st.info("☁️ Fazendo upload para o Google Drive...")
         
+        # Converter AttrDict do Streamlit para dict normal
+        credentials_dict = dict(GOOGLE_CREDENTIALS)
+        
         # Configurar credenciais do Google
-        if isinstance(GOOGLE_CREDENTIALS, dict):
-            creds = service_account.Credentials.from_service_account_info(
-                GOOGLE_CREDENTIALS,
-                scopes=['https://www.googleapis.com/auth/drive.file']
-            )
-        else:
-            creds = Credentials.from_authorized_user_info(
-                GOOGLE_CREDENTIALS,
-                scopes=['https://www.googleapis.com/auth/drive.file']
-            )
+        creds = service_account.Credentials.from_service_account_info(
+            credentials_dict,
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
         
         # Criar cliente do Drive API
         service = build('drive', 'v3', credentials=creds)
