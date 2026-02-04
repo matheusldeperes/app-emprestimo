@@ -10,10 +10,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
-from google.oauth2 import service_account
+
 
 # --- CONFIGURAÇÕES ---
 # Lista de consultores responsáveis pelo empréstimo
@@ -39,15 +36,7 @@ EMAIL_GERENTE = "rodo@sattealam.com"
 SENDER_EMAIL = st.secrets.get("SENDER_EMAIL", "matheusldeperes@gmail.com")
 SENDER_PASSWORD = st.secrets.get("SENDER_PASSWORD", "")
 
-# ID da pasta do Google Drive onde os PDFs serão salvos
-DRIVE_FOLDER_ID = st.secrets.get("DRIVE_FOLDER_ID", "")
 
-# Credenciais do Google (Service Account ou OAuth)
-# Acessar a seção [GOOGLE_CREDENTIALS] do secrets.toml
-try:
-    GOOGLE_CREDENTIALS = st.secrets["GOOGLE_CREDENTIALS"]
-except:
-    GOOGLE_CREDENTIALS = None
 
 # Inicialização do Estado da Sessão
 if 'lista_fotos' not in st.session_state:
@@ -60,73 +49,9 @@ if 'pdf_enviado' not in st.session_state:
     st.session_state.pdf_enviado = False
 if 'uploaded_fotos_ids' not in st.session_state:
     st.session_state.uploaded_fotos_ids = set()
-if 'drive_link' not in st.session_state:
-    st.session_state.drive_link = None
 
-def upload_para_drive(arquivo_pdf_bytes, nome_arquivo):
-    """Faz upload do PDF para o Google Drive e retorna o link"""
-    try:
-        # Verificar se as credenciais existem
-        if not GOOGLE_CREDENTIALS:
-            st.warning("⚠️ Credenciais do Google Drive não configuradas. Upload para Drive desabilitado.")
-            return None
-        
-        if not DRIVE_FOLDER_ID:
-            st.warning("⚠️ ID da pasta do Drive não configurado. Upload para Drive desabilitado.")
-            return None
-        
-        st.info("☁️ Fazendo upload para o Google Drive...")
-        
-        # Converter AttrDict do Streamlit para dict normal
-        credentials_dict = dict(GOOGLE_CREDENTIALS)
-        
-        # Configurar credenciais do Google
-        creds = service_account.Credentials.from_service_account_info(
-            credentials_dict,
-            scopes=['https://www.googleapis.com/auth/drive.file']
-        )
-        
-        # Criar cliente do Drive API
-        service = build('drive', 'v3', credentials=creds)
-        
-        # Preparar o arquivo para upload
-        file_metadata = {
-            'name': nome_arquivo,
-            'parents': [DRIVE_FOLDER_ID]
-        }
-        
-        media = MediaIoBaseUpload(
-            io.BytesIO(arquivo_pdf_bytes),
-            mimetype='application/pdf',
-            resumable=True
-        )
-        
-        # Fazer upload
-        file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id, webViewLink'
-        ).execute()
-        
-        file_id = file.get('id')
-        
-        # Tornar o arquivo acessível via link
-        service.permissions().create(
-            fileId=file_id,
-            body={'type': 'anyone', 'role': 'reader'}
-        ).execute()
-        
-        link = file.get('webViewLink')
-        st.success(f"✅ Upload concluído! ID do arquivo: {file_id}")
-        return link
-        
-    except Exception as e:
-        erro_msg = f"Erro ao fazer upload para o Drive: {str(e)}"
-        print(erro_msg)
-        st.error(erro_msg)
-        return None
 
-def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios, drive_link=None):
+def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios):
     """Envia o PDF para os emails especificados"""
     try:
         msg = MIMEMultipart()
@@ -143,15 +68,7 @@ def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios
                 <p><strong>Modelo:</strong> {modelo}</p>
                 <p><strong>Consultor Responsável:</strong> {consultor_nome}</p>
                 <p><strong>Data/Hora:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
-        """
-        
-        if drive_link:
-            corpo += f"""
-                <p><strong>Link do Google Drive:</strong> <a href="{drive_link}">Clique aqui para acessar</a></p>
-            """
-        
-        corpo += """
-                <p>Atenciosamente,<br>Sistema Satte Alam</p>
+                <p>Atenciosamente,<br>Sistema Satte Alam Motors</p>
             </body>
         </html>
         """
@@ -180,6 +97,11 @@ def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios
 
 def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, fotos):
     """Gera PDF com logo no topo, dados do veículo e fotos do checklist"""
+    # Cores da identidade visual Satte Alam
+    SATTE_VERDE = (9, 165, 154)
+    SATTE_LARANJA = (242, 92, 5)
+    SATTE_PRETO = (12, 14, 13)
+    
     margem = 20
     largura_pagina = 210
     altura_pagina = 297
@@ -189,33 +111,65 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
     pdf.set_margins(left=margem, top=margem, right=margem)
     pdf.add_page()
     
-    # Logo
-    if os.path.exists(logo_path):
-        pos_x_logo = (largura_pagina - 50) / 2
-        pdf.image(logo_path, x=pos_x_logo, y=margem, w=50)
-        pdf.ln(35)
+    # Verificar se existe fonte Nasalization
+    fonte_titulo = "helvetica"
+    fonte_path = "assets/nasalization-rg.ttf"
+    if os.path.exists(fonte_path):
+        try:
+            pdf.add_font("Nasalization", "", fonte_path, uni=True)
+            fonte_titulo = "Nasalization"
+        except:
+            fonte_titulo = "helvetica"
     
-    # Título
-    pdf.set_font("helvetica", "B", 14)
-    pdf.cell(0, 8, "Checklist de Empréstimo de Veículo - Satte Alam", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    # Logo no canto superior esquerdo + Título ao lado
+    if os.path.exists(logo_path):
+        # Logo menor no canto esquerdo
+        pdf.image(logo_path, x=margem, y=margem, w=30)
+        
+        # Título "Satte Alam Motors" ao lado do logo
+        pdf.set_xy(margem + 35, margem + 5)
+        pdf.set_font(fonte_titulo, "B", 18)
+        pdf.set_text_color(*SATTE_PRETO)
+        pdf.cell(0, 10, "Satte Alam Motors", align="L")
+        
+        pdf.ln(25)
+    
+    # Linha decorativa laranja
+    pdf.set_draw_color(*SATTE_LARANJA)
+    pdf.set_line_width(1.5)
+    pdf.line(margem, pdf.get_y(), largura_pagina - margem, pdf.get_y())
+    pdf.ln(8)
+    
+    # Título do documento
+    pdf.set_font(fonte_titulo, "B", 14)
+    pdf.set_text_color(*SATTE_LARANJA)
+    pdf.cell(0, 8, "Checklist de Empréstimo de Veículo", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    
+    # Linha decorativa verde
+    pdf.set_draw_color(*SATTE_VERDE)
+    pdf.set_line_width(0.5)
+    pdf.line(margem, pdf.get_y() + 2, largura_pagina - margem, pdf.get_y() + 2)
+    pdf.ln(8)
     
     # Dados do veículo
-    pdf.ln(5)
-    pdf.set_font("helvetica", "B", 10)
+    pdf.set_font("helvetica", "B", 11)
+    pdf.set_text_color(*SATTE_PRETO)
     pdf.cell(0, 7, f"Placa do Veículo: {placa}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
     pdf.set_font("helvetica", size=10)
-    pdf.cell(0, 7, f"Modelo: {modelo}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 7, f"Consultor Responsável: {consultor}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 7, f"Data/Hora do Checklist: {data_hora}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 6, f"Modelo: {modelo}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 6, f"Consultor Responsável: {consultor}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 6, f"Data/Hora do Checklist: {data_hora}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
     # Motivo do empréstimo (se fornecido)
     if motivo and motivo.strip():
         pdf.ln(3)
         pdf.set_font("helvetica", "B", 10)
+        pdf.set_text_color(*SATTE_VERDE)
         pdf.cell(0, 7, "Motivo do Empréstimo:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         pdf.set_font("helvetica", size=9)
+        pdf.set_text_color(*SATTE_PRETO)
         try:
             motivo_tratado = motivo.encode('latin-1', 'ignore').decode('latin-1')
         except:
@@ -225,8 +179,14 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
     pdf.ln(8)
     
     # Evidências fotográficas
-    pdf.set_font("helvetica", "B", 10)
+    pdf.set_font("helvetica", "B", 11)
+    pdf.set_text_color(*SATTE_LARANJA)
     pdf.cell(0, 7, "Evidências Fotográficas do Veículo:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    
+    # Linha decorativa
+    pdf.set_draw_color(*SATTE_LARANJA)
+    pdf.set_line_width(0.5)
+    pdf.line(margem, pdf.get_y(), largura_pagina - margem, pdf.get_y())
     pdf.ln(5)
     
     for idx, foto in enumerate(fotos, 1):
@@ -251,25 +211,112 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
         
         # Centralizar a imagem
         x_centralizado = margem + (largura_disponivel - largura_foto) / 2
+        
+        # Borda colorida ao redor da foto
+        pdf.set_draw_color(*SATTE_VERDE)
+        pdf.set_line_width(0.5)
+        pdf.rect(x_centralizado - 2, pdf.get_y() - 2, largura_foto + 4, altura_no_pdf + 4)
+        
         pdf.image(img_byte_arr, x=x_centralizado, w=largura_foto)
         pdf.ln(3)
+    
+    # Rodapé na última página
+    pdf.set_y(-30)
+    pdf.set_font("helvetica", "I", 8)
+    pdf.set_text_color(128, 128, 128)
+    pdf.cell(0, 5, "Documento gerado automaticamente pelo Sistema Satte Alam Motors", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 5, f"Data de geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}", align="C")
     
     return bytes(pdf.output())
 
 # --- INTERFACE ---
 st.set_page_config(page_title="Satte Alam - Checklist de Empréstimo", layout="centered", initial_sidebar_state="collapsed")
 
-# CSS para mobile
+# CSS customizado com cores da identidade visual Satte Alam
 st.markdown(
     """
     <style>
+    /* Cores da marca */
+    :root {
+        --satte-verde: #09a59a;
+        --satte-laranja: #f25c05;
+        --satte-vermelho: #d92d07;
+        --satte-preto: #0c0e0d;
+    }
+    
+    /* Estilização geral */
     .centered-img {
         display: flex;
         justify-content: center;
         margin-bottom: 20px;
     }
+    
     body {
         max-width: 100%;
+    }
+    
+    /* Títulos com cores da marca */
+    h1 {
+        color: var(--satte-preto) !important;
+        font-weight: 900 !important;
+        border-bottom: 3px solid var(--satte-laranja);
+        padding-bottom: 10px;
+    }
+    
+    h2, h3 {
+        color: var(--satte-preto) !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Botão principal */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(90deg, var(--satte-laranja) 0%, var(--satte-vermelho) 100%) !important;
+        color: white !important;
+        font-weight: bold !important;
+        border: none !important;
+        padding: 12px 24px !important;
+        font-size: 16px !important;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        background: linear-gradient(90deg, var(--satte-vermelho) 0%, var(--satte-laranja) 100%) !important;
+        box-shadow: 0 4px 12px rgba(242, 92, 5, 0.4) !important;
+    }
+    
+    /* Info boxes */
+    .stInfo {
+        background-color: rgba(9, 165, 154, 0.1) !important;
+        border-left: 4px solid var(--satte-verde) !important;
+    }
+    
+    /* Success boxes */
+    .stSuccess {
+        background-color: rgba(9, 165, 154, 0.15) !important;
+        border-left: 4px solid var(--satte-verde) !important;
+    }
+    
+    /* Warning boxes */
+    .stWarning {
+        background-color: rgba(242, 92, 5, 0.1) !important;
+        border-left: 4px solid var(--satte-laranja) !important;
+    }
+    
+    /* Divider */
+    hr {
+        border-color: var(--satte-verde) !important;
+        border-width: 2px !important;
+    }
+    
+    /* Text inputs e select boxes */
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div > select {
+        border-color: var(--satte-verde) !important;
+    }
+    
+    .stTextInput > div > div > input:focus,
+    .stSelectbox > div > div > select:focus {
+        border-color: var(--satte-laranja) !important;
+        box-shadow: 0 0 0 1px var(--satte-laranja) !important;
     }
     </style>
     """,
@@ -361,7 +408,7 @@ if not st.session_state.finalizado:
         st.warning("⚠️ Preencha a placa, modelo e capture ao menos uma foto para continuar")
     
     if st.button("✅ Finalizar Checklist e Enviar", use_container_width=True, disabled=not botao_liberado, type="primary"):
-        with st.spinner("Gerando PDF, fazendo upload para o Drive e enviando emails..."):
+        with st.spinner("Gerando PDF e enviando emails..."):
             # Gerar PDF
             pdf_bytes = gerar_pdf_bytes(
                 "assets/logo.png",
@@ -374,11 +421,6 @@ if not st.session_state.finalizado:
             )
             st.session_state.pdf_pronto = pdf_bytes
             
-            # Upload para Google Drive
-            nome_arquivo = f"Emprestimo_{placa_veiculo.upper()}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
-            drive_link = upload_para_drive(pdf_bytes, nome_arquivo)
-            st.session_state.drive_link = drive_link
-            
             # Enviar emails
             destinatarios = [EMAIL_OFICINA, EMAIL_GERENTE]
             sucesso_email = enviar_email(
@@ -386,8 +428,7 @@ if not st.session_state.finalizado:
                 placa_veiculo.upper(), 
                 modelo_veiculo,
                 consultor_responsavel, 
-                destinatarios,
-                drive_link
+                destinatarios
             )
             
             if sucesso_email:
@@ -398,10 +439,6 @@ if not st.session_state.finalizado:
 if st.session_state.finalizado:
     st.success(f"✅ Checklist do veículo **{placa_veiculo.upper()}** concluído com sucesso!")
     st.success(f"📧 Emails enviados para: {EMAIL_OFICINA} e {EMAIL_GERENTE}")
-    
-    if st.session_state.drive_link:
-        st.success(f"☁️ PDF enviado para o Google Drive")
-        st.info(f"🔗 Link: {st.session_state.drive_link}")
     
     st.download_button(
         label="⬇️ Baixar PDF do Checklist",
@@ -417,7 +454,6 @@ if st.session_state.finalizado:
         st.session_state.finalizado = False
         st.session_state.pdf_enviado = False
         st.session_state.uploaded_fotos_ids = set()
-        st.session_state.drive_link = None
         if 'ultima_foto_id' in st.session_state:
             del st.session_state.ultima_foto_id
         st.rerun()

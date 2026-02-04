@@ -1,127 +1,235 @@
-# App de Checklist de Empréstimo de Veículos - Satte Alam
+# 🚗 Checklist de Empréstimo - Satte Alam Motors
 
-Este aplicativo foi desenvolvido para realizar o checklist de veículos emprestados pela Satte Alam, com captura de fotos, geração de PDF e envio automático por email e Google Drive.
+Sistema web para documentação de empréstimos de veículos com checklist fotográfico, geração de PDF estilizado e envio automático por email.
 
-## 📋 Funcionalidades
+## 🎨 Identidade Visual
 
-- ✅ Coleta de dados do veículo (placa e modelo)
-- ✅ Captura automática de data/hora do checklist
-- ✅ Seleção de consultor responsável
-- ✅ Campo opcional para motivo do empréstimo
-- ✅ Captura de fotos via câmera ou upload
-- ✅ Geração automática de PDF com todas as informações
-- ✅ Upload automático para Google Drive (opcional)
-- ✅ Envio automático por email para oficina@sattealam.com e rodolfo@sattealam.com
+Aplicação completa da identidade visual Satte Alam Motors:
+- ✅ Cores oficiais da marca
+- ✅ Tipografia Nasalization (opcional) ou Helvetica Bold
+- ✅ Layout profissional e moderno
+- ✅ PDFs com branding consistente
+
+**Cores da marca:**
+- 🟢 Verde: `#09a59a`
+- 🟠 Laranja: `#f25c05`
+- 🔴 Vermelho: `#d92d07`
+- ⚫ Preto: `#0c0e0d`
+
+## ✨ Funcionalidades
+
+### Coleta de Dados
+- 📋 Placa do veículo
+- 🚙 Modelo do veículo
+- 👤 Consultor responsável (seleção)
+- 📝 Motivo do empréstimo (opcional)
+- 🕒 Data e hora automáticas
+
+### Captura de Evidências
+- 📸 Câmera do navegador (mobile/desktop)
+- 📤 Upload de fotos do dispositivo
+- 🖼️ Múltiplas fotos por checklist
+- ✏️ Remoção individual de fotos
+
+### Geração de PDF
+- 🎨 Design com identidade visual Satte Alam
+- 🏢 Logo + título "Satte Alam Motors" no cabeçalho
+- 📊 Todos os dados do checklist
+- 🖼️ Fotos com bordas estilizadas
+- 📄 Rodapé com data de geração
+
+### Distribuição
+- 📧 Envio automático por email
+- 📨 Destinatários: oficina@sattealam.com e rodo@sattealam.com
+- 💾 Download local do PDF
+- ✅ Confirmação de envio
+
 
 ## 🚀 Instalação
 
-### 1. Instalar dependências
+### 1. Clonar/Baixar o projeto
+
+```bash
+cd APP-Empréstimo
+```
+
+### 2. Criar ambiente virtual (recomendado)
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Mac/Linux
+# ou
+.venv\Scripts\activate  # Windows
+```
+
+### 3. Instalar dependências
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configurar credenciais de email
+### 4. Configurar credenciais
 
-Para enviar emails via Gmail, você precisa de uma **Senha de App**:
-
-1. Acesse [myaccount.google.com](https://myaccount.google.com)
-2. Vá em "Segurança"
-3. Ative "Verificação em duas etapas" (se ainda não estiver)
-4. Procure por "Senhas de app"
-5. Crie uma senha de app para "Mail"
-6. Copie a senha gerada
-
-### 3. Configurar Google Drive (Opcional)
-
-Para fazer upload automático para o Google Drive:
-
-1. Acesse [console.cloud.google.com](https://console.cloud.google.com)
-2. Crie um novo projeto ou selecione um existente
-3. Ative a API do Google Drive:
-   - Vá em "APIs e Serviços" > "Biblioteca"
-   - Procure por "Google Drive API"
-   - Clique em "Ativar"
-4. Crie uma Service Account:
-   - Vá em "APIs e Serviços" > "Credenciais"
-   - Clique em "Criar credenciais" > "Conta de serviço"
-   - Preencha os dados e clique em "Criar"
-5. Gere uma chave JSON:
-   - Clique na conta de serviço criada
-   - Vá em "Chaves" > "Adicionar chave" > "Criar nova chave"
-   - Selecione "JSON" e baixe o arquivo
-6. Compartilhe uma pasta do Drive com o email da service account:
-   - Copie o email da service account (ex: nome@projeto.iam.gserviceaccount.com)
-   - No Google Drive, crie uma pasta ou selecione uma existente
-   - Compartilhe a pasta com o email da service account (permissão de Editor)
-   - Copie o ID da pasta (está na URL: drive.google.com/drive/folders/ID_DA_PASTA)
-
-### 4. Configurar secrets.toml
-
-Edite o arquivo `.streamlit/secrets.toml` com suas credenciais:
+Crie o arquivo `.streamlit/secrets.toml`:
 
 ```toml
-SENDER_EMAIL = "gerencia@sattealam.com"
-SENDER_PASSWORD = "sua_senha_de_app_do_gmail"
+# Configurações de Email (Gmail)
+SENDER_EMAIL = "seu-email@gmail.com"
+SENDER_PASSWORD = "sua-senha-de-app"
+```
 
-# Se for usar Google Drive
-DRIVE_FOLDER_ID = "ID_DA_PASTA_DO_DRIVE"
+**Para criar senha de app do Gmail:**
+1. Acesse https://myaccount.google.com/apppasswords
+2. Ative verificação em duas etapas
+3. Crie senha de app para "Mail"
+4. Use a senha gerada (não sua senha normal)
+
+### 5. (Opcional) Adicionar fonte Nasalization
+
+1. Baixe em: https://www.dafont.com/nasalization.font
+2. Extraia `nasalization-rg.ttf`
+3. Coloque em `assets/nasalization-rg.ttf`
+
+Se não adicionar, o app usará Helvetica Bold automaticamente.
+
 
 [GOOGLE_CREDENTIALS]
 type = "service_account"
 project_id = "seu-projeto"
 private_key_id = "..."
-private_key = "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-client_email = "seu-service-account@projeto.iam.gserviceaccount.com"
-client_id = "..."
-auth_uri = "https://accounts.google.com/o/oauth2/auth"
-token_uri = "https://oauth2.googleapis.com/token"
-auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
-client_x509_cert_url = "..."
-```
 
-**Dica:** Cole o conteúdo completo do JSON baixado no passo anterior dentro de `[GOOGLE_CREDENTIALS]`.
+## 🎯 Uso
 
-## ▶️ Executar o aplicativo
+### Executar aplicação
 
 ```bash
 streamlit run app.py
 ```
 
-O aplicativo abrirá automaticamente no navegador em `http://localhost:8501`
+O app abrirá em `http://localhost:8501`
 
-## 📱 Uso em dispositivos móveis
+### Fluxo de uso
 
-O app é otimizado para uso em smartphones:
+1. **Preencher dados do veículo**
+   - Placa (ex: ABC-1234)
+   - Modelo (ex: Corolla XEI)
 
-- Use a câmera traseira clicando no ícone de rotação da câmera
-- Para melhor qualidade com flash, use o modo "Enviar foto do aparelho"
-- Tire as fotos com o app nativo da câmera e faça upload
+2. **Selecionar consultor responsável**
+   - Lista pré-definida de consultores
 
-## 🗂️ Estrutura de arquivos
+3. **Adicionar motivo** (opcional)
+   - Descrição do motivo do empréstimo
+
+4. **Capturar fotos**
+   - Usar câmera do navegador, ou
+   - Fazer upload de fotos já tiradas
+
+5. **Finalizar**
+   - Sistema gera PDF automaticamente
+   - Envia por email para oficina e gerente
+   - Disponibiliza download
+
+6. **Novo checklist**
+   - Botão para limpar e começar outro
+
+## 📁 Estrutura do Projeto
 
 ```
 APP-Empréstimo/
-├── app.py                    # Aplicativo principal
-├── requirements.txt          # Dependências Python
-├── .streamlit/
-│   └── secrets.toml         # Credenciais (não commitar!)
+├── app.py                      # Aplicação principal
+├── requirements.txt            # Dependências Python
 ├── assets/
-│   └── logo.png             # Logo da empresa
-└── README.md                # Este arquivo
+│   └── logo.png               # Logo Satte Alam
+├── .streamlit/
+│   └── secrets.toml           # Credenciais (não commitado)
+├── README.md                   # Este arquivo
+├── CHANGELOG.md               # Histórico de mudanças
+├── IDENTIDADE_VISUAL.md       # Guia de identidade visual
+└── FONTES.md                  # Instruções sobre fontes
 ```
 
-## 📧 Emails enviados
+## 🔧 Configuração Avançada
 
-Os PDFs são enviados automaticamente para:
-- oficina@sattealam.com
-- rodolfo@sattealam.com
+### Personalizar emails destinatários
 
-O remetente é: gerencia@sattealam.com
+Edite em app.py:
+
+```python
+EMAIL_OFICINA = "oficina@sattealam.com"
+EMAIL_GERENTE = "rodo@sattealam.com"
+```
+
+### Personalizar lista de consultores
+
+Edite em app.py:
+
+```python
+CONSULTORES = [
+    "Diulie",
+    "José",
+    # ... adicione mais nomes
+]
+```
+
+## 🧪 Testar Configuração
+
+Execute o script de teste:
+
+```bash
+python teste_configuracao.py
+```
+
+## 📋 Dependências
+
+- **streamlit** - Framework web
+- **fpdf2** - Geração de PDF
+- **Pillow** - Processamento de imagens
 
 ## 🔒 Segurança
 
-- Nunca compartilhe o arquivo `secrets.toml` em repositórios públicos
+- ⚠️ Nunca commite `secrets.toml` no Git
+- ⚠️ Use senhas de app, não senhas principais
+- ⚠️ Mantenha credenciais privadas
+
+## 📝 Changelog
+
+Ver [CHANGELOG.md](CHANGELOG.md) para histórico completo de mudanças.
+
+### Versão Atual (v2.0)
+- ✅ Removido Google Drive
+- ✅ Aplicada identidade visual Satte Alam
+- ✅ Novo layout de PDF com logo e título
+- ✅ Interface estilizada com cores da marca
+- ✅ Código simplificado e otimizado
+
+## 🆘 Problemas Comuns
+
+### Email não envia
+- Verifique se está usando senha de app do Gmail
+- Confirme se "Acesso a apps menos seguros" está desabilitado
+- Use senha de app: https://myaccount.google.com/apppasswords
+
+### PDF sem logo
+- Verifique se `assets/logo.png` existe
+- Confirme o caminho do arquivo
+
+### Fonte não aparece
+- Baixe Nasalization e coloque em `assets/nasalization-rg.ttf`
+- Ou ignore: app usa Helvetica Bold automaticamente
+
+### Erro ao capturar foto
+- Use HTTPS ou localhost
+- Em mobile, permita acesso à câmera
+- Ou use modo "Enviar foto do aparelho"
+
+## 📄 Licença
+
+Uso interno - Satte Alam Motors
+
+---
+
+**Desenvolvido para Satte Alam Motors** 🚗
+
 - Adicione `.streamlit/` ao `.gitignore` se usar Git
 - Use senhas de app do Gmail (não a senha principal)
 
