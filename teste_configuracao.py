@@ -39,11 +39,33 @@ else:
     if os.path.exists("logo.png"):
         print("   💡 Dica: Copie logo.png para assets/logo.png")
 
+# Verificar fontes Montserrat
+montserrat_fonts = [
+    "Montserrat-Light.ttf",
+    "Montserrat-Regular.ttf",
+    "Montserrat-Medium.ttf",
+    "Montserrat-SemiBold.ttf",
+    "Montserrat-ExtraBold.ttf"
+]
+
+montserrat_count = 0
+for font in montserrat_fonts:
+    if os.path.exists(f"assets/{font}"):
+        montserrat_count += 1
+
+if montserrat_count == 5:
+    print(f"   ✅ Montserrat completo ({montserrat_count}/5 variantes)")
+elif montserrat_count > 0:
+    print(f"   ⚠️  Montserrat parcial ({montserrat_count}/5 variantes)")
+else:
+    print("   ❌ Fontes Montserrat não encontradas")
+    print("   💡 Execute: curl comando para baixar")
+
 if os.path.exists("assets/nasalization-rg.ttf"):
-    print("   ✅ Fonte Nasalization encontrada")
+    print("   ✅ Fonte Nasalization encontrada (opcional)")
 else:
     print("   ⚠️  Fonte Nasalization não encontrada (opcional)")
-    print("   💡 O app usará Helvetica Bold como fallback")
+    print("   💡 O app usará Montserrat Bold como fallback")
 
 # 4. Verificar secrets
 print("\n4. Verificando configurações:")

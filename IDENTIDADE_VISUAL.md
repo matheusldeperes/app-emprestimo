@@ -77,14 +77,47 @@ Extraídas do manual de identidade visual:
 ## Tipografia
 
 ### Fonte Principal: Nasalization Rg
-- Uso: Títulos e destaques
-- Fallback: Helvetica Bold
+- Uso: Logotipo "Satte Alam Motors"
+- Localização: Cabeçalho do PDF
 - Características: Moderna, tecnológica, impactante
+- Arquivo: `assets/nasalization-rg.ttf`
 
-### Fonte Secundária: Helvetica
-- Uso: Corpo de texto
-- Variantes: Regular, Bold
-- Características: Legível, profissional, universal
+### Fonte de Apoio: Montserrat
+Conforme especificado no manual de identidade visual:
+
+#### Montserrat Light (300)
+- Uso: Textos auxiliares, legendas
+- Arquivo: `assets/Montserrat-Light.ttf`
+
+#### Montserrat Regular (400)
+- Uso: Corpo de texto padrão
+- Arquivo: `assets/Montserrat-Regular.ttf`
+
+#### Montserrat Medium (500)
+- Uso: Textos com ênfase moderada, labels
+- Arquivo: `assets/Montserrat-Medium.ttf`
+
+#### Montserrat Semi Bold (600)
+- Uso: Subtítulos, destaques
+- Arquivo: `assets/Montserrat-SemiBold.ttf`
+
+#### Montserrat Extra Bold (800)
+- Uso: Títulos principais
+- Arquivo: `assets/Montserrat-ExtraBold.ttf`
+
+### Aplicação
+
+**Interface Web (Streamlit):**
+- Importado via Google Fonts
+- Aplicado globalmente com `font-family: 'Montserrat', sans-serif`
+- Pesos: 300, 400, 500, 600, 700, 800
+
+**PDF:**
+- Nasalization Rg: Logo/título "Satte Alam Motors"
+- Montserrat Extra Bold: Título do documento
+- Montserrat Semi Bold: Subtítulos e labels
+- Montserrat Medium: Corpo de texto
+- Montserrat Regular: Rodapé
 
 ## Elementos Visuais
 
@@ -111,8 +144,24 @@ Extraídas do manual de identidade visual:
 ✅ Laranja Satte sobre branco: Bom (4.2:1)
 ⚠️ Verde/Laranja em fundos claros: Use apenas para destaques
 
+### Modo Dark
+O aplicativo detecta automaticamente o modo dark do navegador e ajusta as cores:
+- **Títulos**: Branco (#ffffff) ao invés de preto
+- **Texto corpo**: Branco com 90% opacidade
+- **Bordas e destaques**: Mantêm cores da marca (verde, laranja)
+- **Fundo**: Respeitado pelo Streamlit
+
+Regra CSS implementada:
+```css
+@media (prefers-color-scheme: dark) {
+    h1, h2, h3 { color: #ffffff !important; }
+    p, span, div, label { color: rgba(255, 255, 255, 0.9) !important; }
+}
+```
+
 ### Legibilidade
 - Tamanho mínimo de fonte: 8pt (rodapé)
 - Tamanho padrão: 10-12pt (corpo)
 - Tamanho títulos: 14-18pt
 - Line height: 1.5x (web), 1.3x (PDF)
+- Família: Montserrat (alta legibilidade em todos os tamanhos)

@@ -111,24 +111,41 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
     pdf.set_margins(left=margem, top=margem, right=margem)
     pdf.add_page()
     
-    # Verificar se existe fonte Nasalization
-    fonte_titulo = "helvetica"
-    fonte_path = "assets/nasalization-rg.ttf"
-    if os.path.exists(fonte_path):
+    # Adicionar fontes Montserrat
+    fonte_logo = "helvetica"  # Fallback para Nasalization
+    fonte_texto = "helvetica"  # Fallback para Montserrat
+    
+    # Tentar carregar Nasalization para o logo
+    fonte_nasalization = "assets/nasalization-rg.ttf"
+    if os.path.exists(fonte_nasalization):
         try:
-            pdf.add_font("Nasalization", "", fonte_path, uni=True)
-            fonte_titulo = "Nasalization"
+            pdf.add_font("Nasalization", "", fonte_nasalization, uni=True)
+            fonte_logo = "Nasalization"
         except:
-            fonte_titulo = "helvetica"
+            fonte_logo = "helvetica"
+    
+    # Adicionar fontes Montserrat
+    try:
+        pdf.add_font("Montserrat", "", "assets/Montserrat-Regular.ttf", uni=True)
+        pdf.add_font("Montserrat", "B", "assets/Montserrat-SemiBold.ttf", uni=True)
+        pdf.add_font("MontserratMedium", "", "assets/Montserrat-Medium.ttf", uni=True)
+        pdf.add_font("MontserratExtraBold", "", "assets/Montserrat-ExtraBold.ttf", uni=True)
+        fonte_texto = "Montserrat"
+    except Exception as e:
+        print(f"Aviso: Não foi possível carregar Montserrat: {e}")
+        fonte_texto = "helvetica"
     
     # Logo no canto superior esquerdo + Título ao lado
     if os.path.exists(logo_path):
         # Logo menor no canto esquerdo
         pdf.image(logo_path, x=margem, y=margem, w=30)
         
-        # Título "Satte Alam Motors" ao lado do logo
+        # Título "Satte Alam Motors" ao lado do logo (usando Nasalization)
         pdf.set_xy(margem + 35, margem + 5)
-        pdf.set_font(fonte_titulo, "B", 18)
+        if fonte_logo == "Nasalization":
+            pdf.set_font(fonte_logo, "", 18)
+        else:
+            pdf.set_font(fonte_texto if fonte_texto == "Montserrat" else "helvetica", "B", 18)
         pdf.set_text_color(*SATTE_PRETO)
         pdf.cell(0, 10, "Satte Alam Motors", align="L")
         
@@ -140,8 +157,11 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
     pdf.line(margem, pdf.get_y(), largura_pagina - margem, pdf.get_y())
     pdf.ln(8)
     
-    # Título do documento
-    pdf.set_font(fonte_titulo, "B", 14)
+    # Título do documento (Montserrat Extra Bold)
+    if fonte_texto == "Montserrat":
+        pdf.set_font("MontserratExtraBold", "", 14)
+    else:
+        pdf.set_font("helvetica", "B", 14)
     pdf.set_text_color(*SATTE_LARANJA)
     pdf.cell(0, 8, "Checklist de Empréstimo de Veículo", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
     
@@ -151,12 +171,19 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
     pdf.line(margem, pdf.get_y() + 2, largura_pagina - margem, pdf.get_y() + 2)
     pdf.ln(8)
     
-    # Dados do veículo
-    pdf.set_font("helvetica", "B", 11)
+    # Dados do veículo (Montserrat Semi Bold)
+    if fonte_texto == "Montserrat":
+        pdf.set_font("Montserrat", "B", 11)
+    else:
+        pdf.set_font("helvetica", "B", 11)
     pdf.set_text_color(*SATTE_PRETO)
     pdf.cell(0, 7, f"Placa do Veículo: {placa}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
-    pdf.set_font("helvetica", size=10)
+    # Texto regular (Montserrat Medium)
+    if fonte_texto == "Montserrat":
+        pdf.set_font("MontserratMedium", "", 10)
+    else:
+        pdf.set_font("helvetica", "", 10)
     pdf.cell(0, 6, f"Modelo: {modelo}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 6, f"Consultor Responsável: {consultor}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 6, f"Data/Hora do Checklist: {data_hora}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -164,11 +191,17 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
     # Motivo do empréstimo (se fornecido)
     if motivo and motivo.strip():
         pdf.ln(3)
-        pdf.set_font("helvetica", "B", 10)
+        if fonte_texto == "Montserrat":
+            pdf.set_font("Montserrat", "B", 10)
+        else:
+            pdf.set_font("helvetica", "B", 10)
         pdf.set_text_color(*SATTE_VERDE)
         pdf.cell(0, 7, "Motivo do Empréstimo:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
-        pdf.set_font("helvetica", size=9)
+        if fonte_texto == "Montserrat":
+            pdf.set_font("Montserrat", "", 9)
+        else:
+            pdf.set_font("helvetica", "", 9)
         pdf.set_text_color(*SATTE_PRETO)
         try:
             motivo_tratado = motivo.encode('latin-1', 'ignore').decode('latin-1')
@@ -178,8 +211,11 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
     
     pdf.ln(8)
     
-    # Evidências fotográficas
-    pdf.set_font("helvetica", "B", 11)
+    # Evidências fotográficas (Montserrat Semi Bold)
+    if fonte_texto == "Montserrat":
+        pdf.set_font("Montserrat", "B", 11)
+    else:
+        pdf.set_font("helvetica", "B", 11)
     pdf.set_text_color(*SATTE_LARANJA)
     pdf.cell(0, 7, "Evidências Fotográficas do Veículo:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
@@ -220,9 +256,12 @@ def gerar_pdf_bytes(logo_path, placa, modelo, consultor, motivo, data_hora, foto
         pdf.image(img_byte_arr, x=x_centralizado, w=largura_foto)
         pdf.ln(3)
     
-    # Rodapé na última página
+    # Rodapé na última página (Montserrat Light)
     pdf.set_y(-30)
-    pdf.set_font("helvetica", "I", 8)
+    if fonte_texto == "Montserrat":
+        pdf.set_font("Montserrat", "", 8)
+    else:
+        pdf.set_font("helvetica", "I", 8)
     pdf.set_text_color(128, 128, 128)
     pdf.cell(0, 5, "Documento gerado automaticamente pelo Sistema Satte Alam Motors", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 5, f"Data de geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}", align="C")
@@ -236,12 +275,21 @@ st.set_page_config(page_title="Satte Alam - Checklist de Empréstimo", layout="c
 st.markdown(
     """
     <style>
+    /* Importar Montserrat do Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+    
     /* Cores da marca */
     :root {
         --satte-verde: #09a59a;
         --satte-laranja: #f25c05;
         --satte-vermelho: #d92d07;
         --satte-preto: #0c0e0d;
+        --satte-branco: #ffffff;
+    }
+    
+    /* Aplicar Montserrat globalmente */
+    html, body, [class*="css"], p, span, div {
+        font-family: 'Montserrat', sans-serif !important;
     }
     
     /* Estilização geral */
@@ -255,24 +303,49 @@ st.markdown(
         max-width: 100%;
     }
     
-    /* Títulos com cores da marca */
+    /* Títulos - modo claro */
     h1 {
         color: var(--satte-preto) !important;
-        font-weight: 900 !important;
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 800 !important;
         border-bottom: 3px solid var(--satte-laranja);
         padding-bottom: 10px;
     }
     
-    h2, h3 {
+    h2 {
         color: var(--satte-preto) !important;
+        font-family: 'Montserrat', sans-serif !important;
         font-weight: 700 !important;
+    }
+    
+    h3 {
+        color: var(--satte-preto) !important;
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Suporte para modo dark - títulos */
+    @media (prefers-color-scheme: dark) {
+        h1 {
+            color: var(--satte-branco) !important;
+            border-bottom-color: var(--satte-laranja);
+        }
+        
+        h2, h3 {
+            color: var(--satte-branco) !important;
+        }
+        
+        p, span, div, label {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
     }
     
     /* Botão principal */
     .stButton > button[kind="primary"] {
         background: linear-gradient(90deg, var(--satte-laranja) 0%, var(--satte-vermelho) 100%) !important;
         color: white !important;
-        font-weight: bold !important;
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 700 !important;
         border: none !important;
         padding: 12px 24px !important;
         font-size: 16px !important;
@@ -287,18 +360,24 @@ st.markdown(
     .stInfo {
         background-color: rgba(9, 165, 154, 0.1) !important;
         border-left: 4px solid var(--satte-verde) !important;
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 500 !important;
     }
     
     /* Success boxes */
     .stSuccess {
         background-color: rgba(9, 165, 154, 0.15) !important;
         border-left: 4px solid var(--satte-verde) !important;
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 500 !important;
     }
     
     /* Warning boxes */
     .stWarning {
         background-color: rgba(242, 92, 5, 0.1) !important;
         border-left: 4px solid var(--satte-laranja) !important;
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 500 !important;
     }
     
     /* Divider */
@@ -309,14 +388,30 @@ st.markdown(
     
     /* Text inputs e select boxes */
     .stTextInput > div > div > input,
-    .stSelectbox > div > div > select {
+    .stSelectbox > div > div > select,
+    .stTextArea textarea {
         border-color: var(--satte-verde) !important;
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 400 !important;
     }
     
     .stTextInput > div > div > input:focus,
-    .stSelectbox > div > div > select:focus {
+    .stSelectbox > div > div > select:focus,
+    .stTextArea textarea:focus {
         border-color: var(--satte-laranja) !important;
         box-shadow: 0 0 0 1px var(--satte-laranja) !important;
+    }
+    
+    /* Labels */
+    label {
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Radio buttons */
+    .stRadio label {
+        font-family: 'Montserrat', sans-serif !important;
+        font-weight: 500 !important;
     }
     </style>
     """,
