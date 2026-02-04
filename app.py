@@ -43,8 +43,11 @@ SENDER_PASSWORD = st.secrets.get("SENDER_PASSWORD", "")
 DRIVE_FOLDER_ID = st.secrets.get("DRIVE_FOLDER_ID", "")
 
 # Credenciais do Google (Service Account ou OAuth)
-# Você pode usar st.secrets para armazenar as credenciais de forma segura
-GOOGLE_CREDENTIALS = st.secrets.get("GOOGLE_CREDENTIALS", None)
+# Acessar a seção [GOOGLE_CREDENTIALS] do secrets.toml
+try:
+    GOOGLE_CREDENTIALS = st.secrets["GOOGLE_CREDENTIALS"]
+except:
+    GOOGLE_CREDENTIALS = None
 
 # Inicialização do Estado da Sessão
 if 'lista_fotos' not in st.session_state:
