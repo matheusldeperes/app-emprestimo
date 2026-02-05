@@ -13,24 +13,22 @@ from email import encoders
 
 
 # --- CONFIGURAÇÕES ---
-# Lista de recepcionistas responsáveis pelo check-in
-RECEPCIONISTAS = [
+# Lista de consultores responsáveis pelo check-in
+CONSULTORES = [
     "Diulie",
     "José",
-    "Jonathan",
-    "Rodolfo",
-    "Matheus",
-    "Luciano",
-    "Fábio",
-    "Rubens",
-    "Vinícius",
-    "Simone",
-    "Outro"
+    "Jonathan"
 ]
 
-# Emails para envio de cópia
+# Mapeamento de consultores para emails
+EMAILS_CONSULTORES = {
+    "Diulie": "diulie@sattealam.com",
+    "José": "joseantonio@sattealam.com",
+    "Jonathan": "jonathan@sattealam.com"
+}
+
+# Email para envio de cópia
 EMAIL_OFICINA = "oficina@sattealam.com"
-EMAIL_GERENTE = "rodolfo@sattealam.com"
 
 # Configurações de email (usando conta de serviço do Gmail)
 SENDER_EMAIL = st.secrets.get("SENDER_EMAIL", "matheusldeperes@gmail.com")
@@ -51,7 +49,7 @@ if 'uploaded_fotos_ids' not in st.session_state:
     st.session_state.uploaded_fotos_ids = set()
 
 
-def enviar_email(arquivo_pdf_bytes, placa, modelo, cliente_nome, recepcionista_nome, destinatarios):
+def enviar_email(arquivo_pdf_bytes, placa, modelo, cliente_nome, consultor_nome, destinatarios):
     """Envia o PDF para os emails especificados"""
     try:
         msg = MIMEMultipart()
@@ -67,7 +65,7 @@ def enviar_email(arquivo_pdf_bytes, placa, modelo, cliente_nome, recepcionista_n
                 <p><strong>Cliente:</strong> {cliente_nome}</p>
                 <p><strong>Placa:</strong> {placa}</p>
                 <p><strong>Modelo:</strong> {modelo}</p>
-                <p><strong>Recepcionista:</strong> {recepcionista_nome}</p>
+                <p><strong>Consultor Responsável:</strong> {consultor_nome}</p>
                 <p><strong>Data/Hora de Entrada:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
                 <p>Atenciosamente,<br>Sistema Satte Alam Motors</p>
             </body>
@@ -96,7 +94,7 @@ def enviar_email(arquivo_pdf_bytes, placa, modelo, cliente_nome, recepcionista_n
         st.error(f"Erro ao enviar email: {e}")
         return False
 
-def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, observacoes, recepcionista, numero_os, data_hora, fotos):
+def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, observacoes, consultor, numero_os, data_hora, fotos):
     """Gera PDF com logo no topo, dados do veículo e fotos do check-in de oficina"""
     # Cores da identidade visual Satte Alam
     SATTE_VERDE = (9, 165, 154)
@@ -197,7 +195,7 @@ def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, obser
         pdf.set_font("helvetica", "", 10)
     pdf.cell(0, 6, f"Modelo: {modelo}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 6, f"Quilometragem: {quilometragem} km", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 6, f"Recepcionista Responsável: {recepcionista}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 6, f"Consultor Responsável: {consultor}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     if numero_os and numero_os.strip():
         pdf.cell(0, 6, f"Número da OS: {numero_os}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 6, f"Data/Hora de Entrada: {data_hora}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -517,9 +515,9 @@ observacoes_veiculo = st.text_area(
 
 # Seção 2: Dados do Responsável
 st.divider()
-st.subheader("👤 Recepcionista Responsável")
+st.subheader("👤 Consultor Responsável")
 
-recepcionista_responsavel = st.selectbox("Recepcionista que realizou o check-in", RECEPCIONISTAS)
+consultor_responsavel = st.selectbox("Consultor Responsável", CONSULTORES)
 
 
 st.divider()
@@ -588,21 +586,25 @@ if not st.session_state.finalizado:
                 modelo_veiculo,
                 quilometragem_veiculo,
                 observacoes_veiculo,
-                recepcionista_responsavel,
+                consultor_responsavel,
                 numero_os,
                 data_hora_checklist,
                 st.session_state.lista_fotos
             )
             st.session_state.pdf_pronto = pdf_bytes
             
-            # Enviar emails
-            destinatarios = [EMAIL_OFICINA, EMAIL_GERENTE]
+            # Enviar emails (consultor específico + oficina)
+            email_consultor = EMAILS_CONSULTORES.get(consultor_responsavel)
+            destinatarios = [EMAIL_OFICINA]
+            if email_consultor:
+                destinatarios.append(email_consultor)
+            
             sucesso_email = enviar_email(
                 st.session_state.pdf_pronto, 
                 placa_veiculo.upper(), 
                 modelo_veiculo,
                 nome_cliente,
-                recepcionista_responsavel, 
+                consultor_responsavel, 
                 destinatarios
             )
             
@@ -613,7 +615,11 @@ if not st.session_state.finalizado:
 # Exibir resultado após finalização
 if st.session_state.finalizado:
     st.success(f"✅ Check-in do veículo **{placa_veiculo.upper()}** realizado com sucesso!")
-    st.success(f"📧 Emails enviados para: {EMAIL_OFICINA} e {EMAIL_GERENTE}")
+    email_consultor = EMAILS_CONSULTORES.get(consultor_responsavel, "")
+    if email_consultor:
+        st.success(f"📧 Emails enviados para: {EMAIL_OFICINA} e {email_consultor}")
+    else:
+        st.success(f"📧 Email enviado para: {EMAIL_OFICINA}")
     
     st.download_button(
         label="⬇️ Baixar PDF do Check-in",
