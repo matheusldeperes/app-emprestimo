@@ -49,13 +49,13 @@ if 'uploaded_fotos_ids' not in st.session_state:
     st.session_state.uploaded_fotos_ids = set()
 
 
-def enviar_email(arquivo_pdf_bytes, placa, modelo, cliente_nome, consultor_nome, destinatarios):
+def enviar_email(arquivo_pdf_bytes, placa, cliente_nome, consultor_nome, destinatarios):
     """Envia o PDF para os emails especificados"""
     try:
         msg = MIMEMultipart()
         msg['From'] = SENDER_EMAIL
         msg['To'] = ", ".join(destinatarios)
-        msg['Subject'] = f"Check-in Oficina - Veículo {placa} ({modelo})"
+        msg['Subject'] = f"Check-in Oficina - Veículo {placa}"
         
         corpo = f"""
         <html>
@@ -64,7 +64,6 @@ def enviar_email(arquivo_pdf_bytes, placa, modelo, cliente_nome, consultor_nome,
                 <p>Segue em anexo o check-in de entrada na oficina.</p>
                 <p><strong>Cliente:</strong> {cliente_nome}</p>
                 <p><strong>Placa:</strong> {placa}</p>
-                <p><strong>Modelo:</strong> {modelo}</p>
                 <p><strong>Consultor Responsável:</strong> {consultor_nome}</p>
                 <p><strong>Data/Hora de Entrada:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
                 <p>Atenciosamente,<br>Sistema Satte Alam Motors</p>
@@ -94,7 +93,7 @@ def enviar_email(arquivo_pdf_bytes, placa, modelo, cliente_nome, consultor_nome,
         st.error(f"Erro ao enviar email: {e}")
         return False
 
-def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, observacoes, consultor, numero_os, data_hora, fotos):
+def gerar_pdf_bytes(logo_path, nome_cliente, placa, observacoes, consultor, numero_os, data_hora, fotos):
     """Gera PDF com logo no topo, dados do veículo e fotos do check-in de oficina"""
     # Cores da identidade visual Satte Alam
     SATTE_VERDE = (9, 165, 154)
@@ -193,8 +192,6 @@ def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, obser
         pdf.set_font("MontserratMedium", "", 10)
     else:
         pdf.set_font("helvetica", "", 10)
-    pdf.cell(0, 6, f"Modelo: {modelo}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 6, f"Quilometragem: {quilometragem} km", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 6, f"Consultor Responsável: {consultor}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     if numero_os and numero_os.strip():
         pdf.cell(0, 6, f"Número da OS: {numero_os}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -497,11 +494,7 @@ nome_cliente = st.text_input("👤 Nome Completo do Cliente", placeholder="Ex: J
 
 c1, c2 = st.columns(2)
 placa_veiculo = c1.text_input("🚗 Placa do Veículo", placeholder="Ex: ABC-1234", max_chars=8)
-modelo_veiculo = c2.text_input("🚙 Modelo do Veículo", placeholder="Ex: Corolla XEI 2.0")
-
-c3, c4 = st.columns(2)
-quilometragem_veiculo = c3.text_input("📊 Quilometragem (km)", placeholder="Ex: 45000")
-numero_os = c4.text_input("📝 Número da OS (Opcional)", placeholder="Ex: OS-12345")
+numero_os = c2.text_input("📝 Número da OS (Opcional)", placeholder="Ex: OS-12345")
 
 data_hora_checklist = datetime.now().strftime('%d/%m/%Y %H:%M')
 st.info(f"🕒 Data/Hora de Entrada: **{data_hora_checklist}**")
@@ -571,10 +564,10 @@ st.divider()
 
 # Botão de gerar checklist
 if not st.session_state.finalizado:
-    botao_liberado = bool(nome_cliente and placa_veiculo and modelo_veiculo and quilometragem_veiculo and st.session_state.lista_fotos)
+    botao_liberado = bool(nome_cliente and placa_veiculo and st.session_state.lista_fotos)
     
     if not botao_liberado:
-        st.warning("⚠️ Preencha o nome completo do cliente, placa, modelo, quilometragem e capture ao menos uma foto para continuar")
+        st.warning("⚠️ Preencha o nome completo do cliente, placa e capture ao menos uma foto para continuar")
     
     if st.button("✅ Finalizar Check-in e Enviar", use_container_width=True, disabled=not botao_liberado, type="primary"):
         with st.spinner("Gerando PDF e enviando emails..."):
@@ -583,8 +576,6 @@ if not st.session_state.finalizado:
                 "assets/logo.png",
                 nome_cliente,
                 placa_veiculo.upper(),
-                modelo_veiculo,
-                quilometragem_veiculo,
                 observacoes_veiculo,
                 consultor_responsavel,
                 numero_os,
@@ -602,7 +593,6 @@ if not st.session_state.finalizado:
             sucesso_email = enviar_email(
                 st.session_state.pdf_pronto, 
                 placa_veiculo.upper(), 
-                modelo_veiculo,
                 nome_cliente,
                 consultor_responsavel, 
                 destinatarios
