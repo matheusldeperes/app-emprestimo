@@ -13,8 +13,8 @@ from email import encoders
 
 
 # --- CONFIGURAÇÕES ---
-# Lista de consultores responsáveis pelo empréstimo
-CONSULTORES = [
+# Lista de recepcionistas responsáveis pelo check-in
+RECEPCIONISTAS = [
     "Diulie",
     "José",
     "Jonathan",
@@ -51,23 +51,24 @@ if 'uploaded_fotos_ids' not in st.session_state:
     st.session_state.uploaded_fotos_ids = set()
 
 
-def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios):
+def enviar_email(arquivo_pdf_bytes, placa, modelo, cliente_nome, recepcionista_nome, destinatarios):
     """Envia o PDF para os emails especificados"""
     try:
         msg = MIMEMultipart()
         msg['From'] = SENDER_EMAIL
         msg['To'] = ", ".join(destinatarios)
-        msg['Subject'] = f"Checklist de Empréstimo - Veículo {placa} ({modelo})"
+        msg['Subject'] = f"Check-in Oficina - Veículo {placa} ({modelo})"
         
         corpo = f"""
         <html>
             <body style="font-family: Arial; font-size: 12px;">
                 <p>Olá,</p>
-                <p>Segue em anexo o checklist de empréstimo do veículo.</p>
+                <p>Segue em anexo o check-in de entrada na oficina.</p>
+                <p><strong>Cliente:</strong> {cliente_nome}</p>
                 <p><strong>Placa:</strong> {placa}</p>
                 <p><strong>Modelo:</strong> {modelo}</p>
-                <p><strong>Consultor Responsável:</strong> {consultor_nome}</p>
-                <p><strong>Data/Hora:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+                <p><strong>Recepcionista:</strong> {recepcionista_nome}</p>
+                <p><strong>Data/Hora de Entrada:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
                 <p>Atenciosamente,<br>Sistema Satte Alam Motors</p>
             </body>
         </html>
@@ -79,7 +80,7 @@ def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios
         parte = MIMEBase('application', 'octet-stream')
         parte.set_payload(arquivo_pdf_bytes)
         encoders.encode_base64(parte)
-        parte.add_header('Content-Disposition', f'attachment; filename= Emprestimo_{placa}.pdf')
+        parte.add_header('Content-Disposition', f'attachment; filename= CheckIn_Oficina_{placa}.pdf')
         msg.attach(parte)
         
         # Enviar com servidor SMTP do Gmail
@@ -95,8 +96,8 @@ def enviar_email(arquivo_pdf_bytes, placa, modelo, consultor_nome, destinatarios
         st.error(f"Erro ao enviar email: {e}")
         return False
 
-def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, observacoes, consultor, motivo, data_hora, fotos):
-    """Gera PDF com logo no topo, dados do veículo e fotos do checklist"""
+def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, observacoes, recepcionista, numero_os, data_hora, fotos):
+    """Gera PDF com logo no topo, dados do veículo e fotos do check-in de oficina"""
     # Cores da identidade visual Satte Alam
     SATTE_VERDE = (9, 165, 154)
     SATTE_LARANJA = (242, 92, 5)
@@ -163,7 +164,7 @@ def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, obser
     else:
         pdf.set_font("helvetica", "B", 14)
     pdf.set_text_color(*SATTE_LARANJA)
-    pdf.cell(0, 8, "Checklist de Empréstimo de Veículo", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    pdf.cell(0, 8, "Check-in de Entrada na Oficina", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
     
     # Linha decorativa verde
     pdf.set_draw_color(*SATTE_VERDE)
@@ -196,8 +197,10 @@ def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, obser
         pdf.set_font("helvetica", "", 10)
     pdf.cell(0, 6, f"Modelo: {modelo}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 6, f"Quilometragem: {quilometragem} km", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 6, f"Consultor Responsável: {consultor}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 6, f"Data/Hora do Checklist: {data_hora}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 6, f"Recepcionista Responsável: {recepcionista}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    if numero_os and numero_os.strip():
+        pdf.cell(0, 6, f"Número da OS: {numero_os}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 6, f"Data/Hora de Entrada: {data_hora}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
     # Observações sobre o veículo (se fornecido)
     if observacoes and observacoes.strip():
@@ -207,7 +210,7 @@ def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, obser
         else:
             pdf.set_font("helvetica", "B", 10)
         pdf.set_text_color(*SATTE_VERDE)
-        pdf.cell(0, 7, "Observações sobre o Veículo:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 7, "Observações e Condições do Veículo:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         if fonte_texto == "Montserrat":
             pdf.set_font("Montserrat", "", 9)
@@ -219,27 +222,6 @@ def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, obser
         except:
             observacoes_tratadas = observacoes
         pdf.multi_cell(0, 5, observacoes_tratadas)
-    
-    # Motivo do empréstimo (se fornecido)
-    if motivo and motivo.strip():
-        pdf.ln(3)
-        if fonte_texto == "Montserrat":
-            pdf.set_font("Montserrat", "B", 10)
-        else:
-            pdf.set_font("helvetica", "B", 10)
-        pdf.set_text_color(*SATTE_VERDE)
-        pdf.cell(0, 7, "Motivo do Empréstimo:", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        
-        if fonte_texto == "Montserrat":
-            pdf.set_font("Montserrat", "", 9)
-        else:
-            pdf.set_font("helvetica", "", 9)
-        pdf.set_text_color(*SATTE_PRETO)
-        try:
-            motivo_tratado = motivo.encode('latin-1', 'ignore').decode('latin-1')
-        except:
-            motivo_tratado = motivo
-        pdf.multi_cell(0, 5, motivo_tratado)
     
     pdf.ln(8)
     
@@ -315,8 +297,8 @@ def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, obser
     else:
         pdf.set_font("helvetica", "", 9)
     pdf.set_text_color(*SATTE_PRETO)
-    pdf.cell(0, 5, "Declaro que recebi o veículo nas condições descritas acima e me comprometo a devolvê-lo", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 5, "nas mesmas condições em que foi emprestado.", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 5, "Declaro que entreguei o veículo nas condições descritas acima e registradas nas", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 5, "fotografias anexas, estando ciente de todas as condições apresentadas.", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     
     pdf.ln(15)
     
@@ -353,7 +335,7 @@ def gerar_pdf_bytes(logo_path, nome_cliente, placa, modelo, quilometragem, obser
     return bytes(pdf.output())
 
 # --- INTERFACE ---
-st.set_page_config(page_title="Satte Alam - Checklist de Empréstimo", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Satte Alam - Check-in Oficina", layout="centered", initial_sidebar_state="collapsed")
 
 # CSS customizado com cores da identidade visual Satte Alam
 st.markdown(
@@ -508,42 +490,43 @@ if os.path.exists("assets/logo.png"):
     st.image("assets/logo.png", width=150)
     st.markdown('</div>', unsafe_allow_html=True)
 
-st.title("Checklist de Empréstimo de Veículo")
+st.title("Check-in de Entrada na Oficina")
 
-# Seção 1: Dados do Veículo
-st.subheader("📋 Dados do Veículo")
+# Seção 1: Dados do Cliente e Veículo
+st.subheader("📋 Dados do Cliente e Veículo")
 
-nome_cliente = st.text_input("👤 Nome do Cliente", placeholder="Ex: João da Silva")
+nome_cliente = st.text_input("👤 Nome Completo do Cliente", placeholder="Ex: João da Silva Santos")
 
 c1, c2 = st.columns(2)
-placa_veiculo = c1.text_input("Placa do Veículo", placeholder="Ex: ABC-1234", max_chars=8)
-modelo_veiculo = c2.text_input("Modelo", placeholder="Ex: Corolla XEI")
+placa_veiculo = c1.text_input("🚗 Placa do Veículo", placeholder="Ex: ABC-1234", max_chars=8)
+modelo_veiculo = c2.text_input("🚙 Modelo do Veículo", placeholder="Ex: Corolla XEI 2.0")
 
 c3, c4 = st.columns(2)
-quilometragem_veiculo = c3.text_input("Quilometragem (km)", placeholder="Ex: 45000")
+quilometragem_veiculo = c3.text_input("📊 Quilometragem (km)", placeholder="Ex: 45000")
+numero_os = c4.text_input("📝 Número da OS (Opcional)", placeholder="Ex: OS-12345")
+
 data_hora_checklist = datetime.now().strftime('%d/%m/%Y %H:%M')
-c4.info(f"🕒 Data/Hora: **{data_hora_checklist}**")
+st.info(f"🕒 Data/Hora de Entrada: **{data_hora_checklist}**")
 
 observacoes_veiculo = st.text_area(
-    "Observações sobre o Veículo",
-    placeholder="Ex: Arranhão na porta traseira direita, pneu dianteiro desgastado...",
-    height=100
+    "📌 Observações e Condições do Veículo",
+    placeholder="Descreva detalhadamente as condições do veículo: arranhões, amassados, peças faltantes, condição dos pneus, riscos no para-brisa, etc.",
+    height=120,
+    help="Importante: Registre todas as condições visíveis do veículo para evitar contestações futuras"
 )
 
 # Seção 2: Dados do Responsável
 st.divider()
-st.subheader("👤 Responsável pelo Empréstimo")
+st.subheader("👤 Recepcionista Responsável")
 
-c3, c4 = st.columns([2, 3])
-consultor_responsavel = c3.selectbox("Consultor Responsável", CONSULTORES)
-motivo_emprestimo = c4.text_area("Motivo do Empréstimo (Opcional)", placeholder="Ex: Veículo em manutenção", height=100)
+recepcionista_responsavel = st.selectbox("Recepcionista que realizou o check-in", RECEPCIONISTAS)
 
 
 st.divider()
 
 # Seção 3: Captura de Fotos
 st.subheader("📸 Captura de Evidências Fotográficas")
-st.info("Em dispositivos móveis, clique na câmera rotativa para usar a câmera traseira")
+st.info("📷 Registre todas as condições do veículo: laterais, frente, traseira, interior, painel, pneus, etc.")
 st.caption("⚠️ Para melhor qualidade com flash, use o modo 'Enviar foto do aparelho' após tirar a foto com o app da câmera.")
 
 modo_captura = st.radio(
@@ -593,9 +576,9 @@ if not st.session_state.finalizado:
     botao_liberado = bool(nome_cliente and placa_veiculo and modelo_veiculo and quilometragem_veiculo and st.session_state.lista_fotos)
     
     if not botao_liberado:
-        st.warning("⚠️ Preencha o nome do cliente, placa, modelo, quilometragem e capture ao menos uma foto para continuar")
+        st.warning("⚠️ Preencha o nome completo do cliente, placa, modelo, quilometragem e capture ao menos uma foto para continuar")
     
-    if st.button("✅ Finalizar Checklist e Enviar", use_container_width=True, disabled=not botao_liberado, type="primary"):
+    if st.button("✅ Finalizar Check-in e Enviar", use_container_width=True, disabled=not botao_liberado, type="primary"):
         with st.spinner("Gerando PDF e enviando emails..."):
             # Gerar PDF
             pdf_bytes = gerar_pdf_bytes(
@@ -605,8 +588,8 @@ if not st.session_state.finalizado:
                 modelo_veiculo,
                 quilometragem_veiculo,
                 observacoes_veiculo,
-                consultor_responsavel,
-                motivo_emprestimo,
+                recepcionista_responsavel,
+                numero_os,
                 data_hora_checklist,
                 st.session_state.lista_fotos
             )
@@ -618,7 +601,8 @@ if not st.session_state.finalizado:
                 st.session_state.pdf_pronto, 
                 placa_veiculo.upper(), 
                 modelo_veiculo,
-                consultor_responsavel, 
+                nome_cliente,
+                recepcionista_responsavel, 
                 destinatarios
             )
             
@@ -628,18 +612,18 @@ if not st.session_state.finalizado:
 
 # Exibir resultado após finalização
 if st.session_state.finalizado:
-    st.success(f"✅ Checklist do veículo **{placa_veiculo.upper()}** concluído com sucesso!")
+    st.success(f"✅ Check-in do veículo **{placa_veiculo.upper()}** realizado com sucesso!")
     st.success(f"📧 Emails enviados para: {EMAIL_OFICINA} e {EMAIL_GERENTE}")
     
     st.download_button(
-        label="⬇️ Baixar PDF do Checklist",
+        label="⬇️ Baixar PDF do Check-in",
         data=st.session_state.pdf_pronto,
-        file_name=f"Emprestimo_{placa_veiculo.upper()}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+        file_name=f"CheckIn_Oficina_{placa_veiculo.upper()}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
         mime="application/pdf",
         use_container_width=True
     )
     
-    if st.button("🔄 Novo Checklist", use_container_width=True):
+    if st.button("🔄 Novo Check-in", use_container_width=True):
         st.session_state.lista_fotos = []
         st.session_state.pdf_pronto = None
         st.session_state.finalizado = False
