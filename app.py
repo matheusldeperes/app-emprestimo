@@ -2,7 +2,8 @@ import streamlit as st
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+import pytz
 from PIL import Image
 import io
 import smtplib
@@ -10,6 +11,16 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
+
+
+# --- FUNÇÕES AUXILIARES ---
+def obter_hora_brasilia():
+    """Retorna a hora atual em Brasília de forma confiável"""
+    # Converte a hora UTC para Brasília
+    tz_brasilia = pytz.timezone('America/Sao_Paulo')
+    agora_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+    agora_brasilia = agora_utc.astimezone(tz_brasilia)
+    return agora_brasilia
 
 
 # --- CONFIGURAÇÕES ---
@@ -65,7 +76,7 @@ def enviar_email(arquivo_pdf_bytes, placa, cliente_nome, consultor_nome, destina
                 <p><strong>Cliente:</strong> {cliente_nome}</p>
                 <p><strong>Placa:</strong> {placa}</p>
                 <p><strong>Consultor Responsável:</strong> {consultor_nome}</p>
-                <p><strong>Data/Hora de Entrada:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+                <p><strong>Data/Hora de Entrada:</strong> {obter_hora_brasilia().strftime('%d/%m/%Y %H:%M')}</p>
                 <p>Atenciosamente,<br>Sistema Satte Alam Motors</p>
             </body>
         </html>
@@ -325,7 +336,7 @@ def gerar_pdf_bytes(logo_path, nome_cliente, placa, observacoes, consultor, nume
         pdf.set_font("helvetica", "I", 8)
     pdf.set_text_color(128, 128, 128)
     pdf.cell(0, 5, "Documento gerado automaticamente pelo Sistema Satte Alam Motors", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 5, f"Data de geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}", align="C")
+    pdf.cell(0, 5, f"Data de geração: {obter_hora_brasilia().strftime('%d/%m/%Y %H:%M')}", align="C")
     
     return bytes(pdf.output())
 
@@ -496,7 +507,7 @@ c1, c2 = st.columns(2)
 placa_veiculo = c1.text_input("🚗 Placa do Veículo", placeholder="Ex: ABC-1234", max_chars=8)
 numero_os = c2.text_input("📝 Número da OS (Opcional)", placeholder="Ex: OS-12345")
 
-data_hora_checklist = datetime.now().strftime('%d/%m/%Y %H:%M')
+data_hora_checklist = obter_hora_brasilia().strftime('%d/%m/%Y %H:%M')
 st.info(f"🕒 Data/Hora de Entrada: **{data_hora_checklist}**")
 
 observacoes_veiculo = st.text_area(
@@ -614,7 +625,7 @@ if st.session_state.finalizado:
     st.download_button(
         label="⬇️ Baixar PDF do Check-in",
         data=st.session_state.pdf_pronto,
-        file_name=f"CheckIn_Oficina_{placa_veiculo.upper()}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
+        file_name=f"CheckIn_Oficina_{placa_veiculo.upper()}_{obter_hora_brasilia().strftime('%Y%m%d_%H%M')}.pdf",
         mime="application/pdf",
         use_container_width=True
     )
