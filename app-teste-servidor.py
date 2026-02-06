@@ -3,7 +3,7 @@ from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 import os
 from datetime import datetime
-from zoneinfo import ZoneInfo
+import pytz
 from PIL import Image
 import io
 import smtplib
@@ -66,7 +66,7 @@ def enviar_email(arquivo_pdf_bytes, placa, cliente_nome, consultor_nome, destina
                 <p><strong>Cliente:</strong> {cliente_nome}</p>
                 <p><strong>Placa:</strong> {placa}</p>
                 <p><strong>Consultor Responsável:</strong> {consultor_nome}</p>
-                <p><strong>Data/Hora de Entrada:</strong> {datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')}</p>
+                <p><strong>Data/Hora de Entrada:</strong> {datetime.now(pytz.timezone('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')}</p>
                 <p>Atenciosamente,<br>Sistema Satte Alam Motors</p>
             </body>
         </html>
@@ -99,7 +99,7 @@ def salvar_pdf_em_servidor(arquivo_pdf_bytes, placa, cliente_nome, consultor_nom
     """Salva o PDF em uma pasta local (simulação de servidor)"""
     try:
         os.makedirs(diretorio_destino, exist_ok=True)
-        timestamp = datetime.now(ZoneInfo('America/Sao_Paulo')).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(pytz.timezone('America/Sao_Paulo')).strftime("%Y%m%d_%H%M%S")
         placa_segura = "".join(ch for ch in placa if ch.isalnum() or ch in "-_ ").strip().upper().replace(" ", "_")
         nome_arquivo = f"CheckIn_Oficina_{placa_segura}_{timestamp}.pdf"
         caminho_arquivo = os.path.join(diretorio_destino, nome_arquivo)
@@ -346,7 +346,7 @@ def gerar_pdf_bytes(logo_path, nome_cliente, placa, observacoes, consultor, nume
         pdf.set_font("helvetica", "I", 8)
     pdf.set_text_color(128, 128, 128)
     pdf.cell(0, 5, "Documento gerado automaticamente pelo Sistema Satte Alam Motors", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 5, f"Data de geração: {datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')}", align="C")
+    pdf.cell(0, 5, f"Data de geração: {datetime.now(pytz.timezone('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')}", align="C")
     
     return bytes(pdf.output())
 
@@ -517,7 +517,7 @@ c1, c2 = st.columns(2)
 placa_veiculo = c1.text_input("🚗 Placa do Veículo", placeholder="Ex: ABC-1234", max_chars=8)
 numero_os = c2.text_input("📝 Número da OS (Opcional)", placeholder="Ex: OS-12345")
 
-data_hora_checklist = datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')
+data_hora_checklist = datetime.now(pytz.timezone('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')
 st.info(f"🕒 Data/Hora de Entrada: **{data_hora_checklist}**")
 
 observacoes_veiculo = st.text_area(
@@ -659,7 +659,7 @@ if st.session_state.finalizado:
     st.download_button(
         label="⬇️ Baixar PDF do Check-in",
         data=st.session_state.pdf_pronto,
-        file_name=f"CheckIn_Oficina_{placa_veiculo.upper()}_{datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%Y%m%d_%H%M')}.pdf",
+        file_name=f"CheckIn_Oficina_{placa_veiculo.upper()}_{datetime.now(pytz.timezone('America/Sao_Paulo')).strftime('%Y%m%d_%H%M')}.pdf",
         mime="application/pdf",
         use_container_width=True
     )
